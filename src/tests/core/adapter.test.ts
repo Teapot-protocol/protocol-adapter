@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { AdapterRegistry, Protocol } from '../../core/adapter.js';
+import { AdapterRegistry, Protocol, ProtocolAdapter } from '../../core/adapter.js';
 
 describe('AdapterRegistry', () => {
     let registry: AdapterRegistry;
@@ -70,6 +70,21 @@ describe('AdapterRegistry', () => {
             
             expect(found).toBeNull();
         });
+
+        it('should handle multiple compatible adapters', () => {
+            const mockAdapter1 = createMockAdapter('Protocol1', 'Protocol2', true);
+            const mockAdapter2 = createMockAdapter('Protocol1', 'Protocol2', true);
+            
+            registry.register(mockAdapter1);
+            registry.register(mockAdapter2);
+            
+            const found = registry.findAdapter(
+                { name: 'Protocol1', version: '2.0', capabilities: [], metadata: {} },
+                { name: 'Protocol2', version: '2.0', capabilities: [], metadata: {} }
+            );
+            
+            expect(found).toBe(mockAdapter2); // Should return the last registered adapter
+        });
     });
 });
 
@@ -77,7 +92,7 @@ function createMockAdapter(
     sourceName: string,
     targetName: string,
     alwaysCompatible = false
-) {
+): ProtocolAdapter<Protocol, Protocol> {
     return {
         sourceProtocol: {
             name: sourceName,
@@ -91,8 +106,8 @@ function createMockAdapter(
             capabilities: [],
             metadata: {}
         },
-        adapt: jest.fn(),
-        reverse: jest.fn(),
+        adapt: jest.fn().mockImplementation(async (data: any) => data),
+        reverse: jest.fn().mockImplementation(async (data: any) => data),
         canHandle: jest.fn().mockImplementation((source: Protocol, target: Protocol) => {
             return alwaysCompatible || (source.name === sourceName && target.name === targetName);
         }),
