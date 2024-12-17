@@ -37,9 +37,7 @@ describe('JsonToXmlAdapter Edge Cases', () => {
             };
 
             const result = await adapter.adapt(json, createMockContext());
-            expect(result).toContain('<root>');
-            expect(result).toContain('<users></users>');
-            expect(result).toContain('</root>');
+            expect(result).toBe('<root><users></users></root>');
         });
 
         it('should handle mixed content types', async () => {
@@ -54,6 +52,8 @@ describe('JsonToXmlAdapter Edge Cases', () => {
             };
 
             const result = await adapter.adapt(json, createMockContext());
+            expect(result).toContain('<root>');
+            expect(result).toContain('<data>');
             expect(result).toContain('<string>text</string>');
             expect(result).toContain('<number>123</number>');
             expect(result).toContain('<boolean>true</boolean>');
@@ -61,6 +61,8 @@ describe('JsonToXmlAdapter Edge Cases', () => {
             expect(result).toContain('<array>1</array>');
             expect(result).toContain('<array>two</array>');
             expect(result).toContain('<array>false</array>');
+            expect(result).toContain('</data>');
+            expect(result).toContain('</root>');
         });
 
         it('should handle special XML characters in attribute values', async () => {
@@ -73,6 +75,21 @@ describe('JsonToXmlAdapter Edge Cases', () => {
             const result = await adapter.adapt(json, createMockContext());
             expect(result).toContain('attr="&quot;quoted&quot; &amp; &lt;tagged&gt;"');
         });
+
+        it('should handle deeply nested structures', async () => {
+            const json = {
+                level1: {
+                    level2: {
+                        level3: {
+                            value: 'deep'
+                        }
+                    }
+                }
+            };
+
+            const result = await adapter.adapt(json, createMockContext());
+            expect(result).toContain('<level1><level2><level3><value>deep</value></level3></level2></level1>');
+        });
     });
 
     describe('reverse edge cases', () => {
@@ -80,8 +97,8 @@ describe('JsonToXmlAdapter Edge Cases', () => {
             const xml = '<root><empty/><also-empty></also-empty></root>';
 
             const result = await adapter.reverse(xml, createMockContext());
-            expect(result.root.empty).toBeDefined();
-            expect(result.root['also-empty']).toBeDefined();
+            expect(result.root.empty).toEqual({});
+            expect(result.root['also-empty']).toEqual({});
         });
 
         it('should handle mixed content', async () => {
@@ -89,6 +106,13 @@ describe('JsonToXmlAdapter Edge Cases', () => {
 
             const result = await adapter.reverse(xml, createMockContext());
             expect(result.root.child['#text']).toBe('nested');
+        });
+
+        it('should handle attributes with self-closing tags', async () => {
+            const xml = '<root><element attr="value"/></root>';
+
+            const result = await adapter.reverse(xml, createMockContext());
+            expect(result.root.element['@attr']).toBe('value');
         });
 
         it('should handle malformed XML gracefully', async () => {
