@@ -89,44 +89,33 @@ export class JsonToXmlAdapter implements ProtocolAdapter<JsonProtocol, XmlProtoc
     }
 
     private xmlToJson(xml: string): any {
-        // Placeholder: In a real implementation, use a proper XML parser
-        const result: any = {};
+        const result: Record<string, any> = {};
         
-        // Basic XML parsing
-        const parseNode = (node: string): any => {
-            const tagMatch = node.match(/<([^\s>]+)(\s[^>]*)?>(([^<]|<[^/]|</[^a-zA-Z])*)<\/\1>/);
-            if (!tagMatch) return node.replace(/<[^>]*>/g, '').trim();
-
-            const [, tag, attrs, content] = tagMatch;
-            const result: any = {};
-
+        // Basic XML parsing using regex
+        const tagPattern = /<([^\s>]+)((?:\s+[^\s=]+="[^"]*")*?)>([^<]*)<\/\1>/g;
+        const attrPattern = /([^\s=]+)="([^"]*)"/g;
+        
+        let match: RegExpExecArray | null;
+        while ((match = tagPattern.exec(xml)) !== null) {
+            const [, tag, attrs, content] = match;
+            const node: Record<string, any> = {};
+            
             // Parse attributes
-            if (attrs) {
-                const attrMatches = attrs.matchAll(/\s([^\s=]+)="([^"]*)"/g);
-                for (const [, name, value] of attrMatches) {
-                    result[`@${name}`] = value;
-                }
+            let attrMatch: RegExpExecArray | null;
+            while ((attrMatch = attrPattern.exec(attrs || '')) !== null) {
+                const [, name, value] = attrMatch;
+                node[`@${name}`] = value;
             }
-
-            // Parse content
+            
+            // Handle content
             if (content.trim()) {
-                const childNodes = content.match(/<[^>]+>[^<]*<\/[^>]+>/g);
-                if (childNodes) {
-                    childNodes.forEach(childNode => {
-                        const childResult = parseNode(childNode);
-                        const childTag = childNode.match(/<([^\s>]+)/)![1];
-                        result[childTag] = childResult;
-                    });
-                } else {
-                    const value = content.trim();
-                    if (value) result['#text'] = value;
-                }
+                node['#text'] = content.trim();
             }
-
-            return result;
-        };
-
-        return parseNode(xml);
+            
+            result[tag] = node;
+        }
+        
+        return result;
     }
 
     private escapeXml(str: string): string {

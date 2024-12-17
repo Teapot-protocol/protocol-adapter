@@ -70,11 +70,11 @@ export async function testBidirectionalConversion<T, U>(
     reverse: T;
     isReversible: boolean;
 }> {
-    const forward = await adapter.adapt(sourceData, context);
+    const forward = await adapter.adapt(sourceData, context) as U;
     const reverse = await adapter.reverse(forward, {
         ...context,
         direction: 'reverse'
-    });
+    }) as T;
 
     return {
         forward,
@@ -94,6 +94,10 @@ export async function expectAdapterError(
         await promise;
         fail('Expected an error but none was thrown');
     } catch (error) {
-        expect(error.constructor.name).toBe(errorType);
+        if (error instanceof Error) {
+            expect(error.constructor.name).toBe(errorType);
+        } else {
+            fail('Caught error is not an Error instance');
+        }
     }
 }
