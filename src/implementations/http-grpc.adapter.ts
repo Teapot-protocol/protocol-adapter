@@ -4,7 +4,7 @@
  * Demonstrates adapting RESTful HTTP endpoints to gRPC services
  */
 
-import { Protocol, ProtocolAdapter, AdapterContext } from '../core/adapter';
+import { Protocol, ProtocolAdapter, AdapterContext } from '../core/adapter.js';
 
 interface HttpProtocol extends Protocol {
     endpoints: {
@@ -50,7 +50,7 @@ export class HttpToGrpcAdapter implements ProtocolAdapter<HttpProtocol, GrpcProt
         const grpcMethod = this.mapHttpToGrpc(method, path);
         
         // Transform request body to Protobuf
-        const message = this.convertToProtobuf(body);
+        const message = this.convertToProtobuf(body || {});
         
         return {
             service: grpcMethod.service,
@@ -85,11 +85,17 @@ export class HttpToGrpcAdapter implements ProtocolAdapter<HttpProtocol, GrpcProt
     }
 
     private mapHttpToGrpc(method: string, path: string): { service: string; method: string } {
-        // Example mapping logic
-        const parts = path.split('/');
+        // Extract base path without query parameters
+        const basePath = path.split('?')[0];
+        const parts = basePath.split('/').filter(p => p);
+        
+        if (parts.length < 1) {
+            throw new Error('Invalid path format');
+        }
+
         return {
-            service: parts[1],
-            method: `${method}${parts[2]}`
+            service: parts[0],
+            method: `${method}${parts.slice(1).join('')}`
         };
     }
 
@@ -100,7 +106,11 @@ export class HttpToGrpcAdapter implements ProtocolAdapter<HttpProtocol, GrpcProt
 
     private convertFromProtobuf(proto: Uint8Array): any {
         // Placeholder: Convert Protobuf to JSON
-        return JSON.parse(new TextDecoder().decode(proto));
+        try {
+            return JSON.parse(new TextDecoder().decode(proto));
+        } catch (error) {
+            throw new Error('Invalid Protobuf message');
+        }
     }
 
     private mapGrpcStatusToHttp(grpcStatus: number): number {

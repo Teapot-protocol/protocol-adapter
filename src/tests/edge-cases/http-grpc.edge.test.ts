@@ -2,8 +2,9 @@
  * Edge case tests for HTTP to gRPC adapter
  */
 
-import { HttpToGrpcAdapter } from '../../implementations/http-grpc.adapter';
-import { createMockContext } from '../utils/test-helpers';
+import { jest } from '@jest/globals';
+import { HttpToGrpcAdapter } from '../../implementations/http-grpc.adapter.js';
+import { createMockContext } from '../utils/test-helpers.js';
 
 describe('HttpToGrpcAdapter Edge Cases', () => {
     let adapter: HttpToGrpcAdapter;
@@ -21,7 +22,8 @@ describe('HttpToGrpcAdapter Edge Cases', () => {
             };
 
             const result = await adapter.adapt(httpRequest, createMockContext());
-            expect(result.message.length).toBe(2); // Empty JSON object encoded
+            const decodedMessage = JSON.parse(new TextDecoder().decode(result.message));
+            expect(decodedMessage).toEqual({});
         });
 
         it('should handle deeply nested objects', async () => {
@@ -77,7 +79,7 @@ describe('HttpToGrpcAdapter Edge Cases', () => {
 
             await expect(adapter.reverse(grpcResponse, createMockContext()))
                 .rejects
-                .toThrow();
+                .toThrow('Invalid Protobuf message');
         });
 
         it('should handle all gRPC status codes', async () => {
