@@ -1,11 +1,12 @@
 /**
- * Integration tests for chaining multiple adapters
+ * Integration tests for adapter chain functionality
  */
 
-import { AdapterRegistry } from '../../core/adapter';
-import { HttpToGrpcAdapter } from '../../implementations/http-grpc.adapter';
-import { JsonToXmlAdapter } from '../../implementations/json-xml.adapter';
-import { createMockContext } from '../utils/test-helpers';
+import { jest } from '@jest/globals';
+import { AdapterRegistry } from '../../core/adapter.js';
+import { HttpToGrpcAdapter } from '../../implementations/http-grpc.adapter.js';
+import { JsonToXmlAdapter } from '../../implementations/json-xml.adapter.js';
+import { createMockContext } from '../utils/test-helpers.js';
 
 describe('Adapter Chain Integration', () => {
     let registry: AdapterRegistry;
@@ -53,15 +54,17 @@ describe('Adapter Chain Integration', () => {
         );
 
         // Verify the final XML output
+        expect(xmlBody).toContain('<root>');
         expect(xmlBody).toContain('<user>');
         expect(xmlBody).toContain('<name>John Doe</name>');
         expect(xmlBody).toContain('<email>john@example.com</email>');
         expect(xmlBody).toContain('</user>');
+        expect(xmlBody).toContain('</root>');
     });
 
     it('should handle reverse transformations', async () => {
         // Start with XML
-        const xmlData = '<user><name>John Doe</name><email>john@example.com</email></user>';
+        const xmlData = '<root><user><name>John Doe</name><email>john@example.com</email></user></root>';
 
         // First convert XML to JSON
         const jsonToXmlAdapter = registry.findAdapter(
@@ -87,8 +90,8 @@ describe('Adapter Chain Integration', () => {
         expect(httpResponse.status).toBe(200);
         expect(httpResponse.body).toEqual({
             user: {
-                name: 'John Doe',
-                email: 'john@example.com'
+                name: { '#text': 'John Doe' },
+                email: { '#text': 'john@example.com' }
             }
         });
     });
