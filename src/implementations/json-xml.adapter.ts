@@ -62,37 +62,55 @@ export class JsonToXmlAdapter implements ProtocolAdapter<JsonProtocol, XmlProtoc
             }
 
             if (Array.isArray(obj)) {
+                if (obj.length === 0 && parentTag) {
+                    return `<${parentTag}></${parentTag}>`;
+                }
                 return obj.map(item => convert(item, parentTag)).join('');
             }
 
             const tags: string[] = [];
+            const attrs: string[] = [];
+
             for (const [key, value] of Object.entries(obj)) {
                 if (key.startsWith('@')) {
-                    continue;
+                    attrs.push(`${key.slice(1)}="${this.escapeXml(String(value))}"`); 
+                } else {
+                    tags.push(convert(value, key));
                 }
-                tags.push(convert(value, key));
             }
+
+            const content = tags.join('');
+            const attrStr = attrs.length ? ' ' + attrs.join(' ') : '';
 
             if (!parentTag) {
-                return tags.join('');
+                return `<root${attrStr}>${content}</root>`;
             }
 
-            const attrs = Object.entries(obj)
-                .filter(([k]) => k.startsWith('@'))
-                .map(([k, v]) => `${k.slice(1)}="${this.escapeXml(String(v))}"`)
-                .join(' ');
-
-            return `<${parentTag}${attrs ? ' ' + attrs : ''}>${tags.join('')}</${parentTag}>`;
+            return `<${parentTag}${attrStr}>${content}</${parentTag}>`;
         };
 
-        return convert(json, 'root');
+        return convert(json);
     }
 
     private xmlToJson(xml: string): any {
         const result: Record<string, any> = {};
-        const tagPattern = /<([^\s>]+)((?:\s+[^\s=]+="[^"]*")*?)>([^<]*)<\/\1>/g;
+        const selfClosingPattern = /<([^\s>]+)((?:\s+[^\s=]+="[^"]*")*?)\s*\/>/g;
+        const tagPattern = /<([^\s>]+)((?:\s+[^\s=]+="[^"]*")*?)>([^<]*(?:(?!<\/\1>)<[^<]*)*?)<\/\1>/g;
         const attrPattern = /([^\s=]+)="([^"]*)"/g;
 
+        // Handle self-closing tags
+        xml = xml.replace(selfClosingPattern, (_, tag, attrs) => {
+            const node: Record<string, any> = {};
+            let attrMatch: RegExpExecArray | null;
+            while ((attrMatch = attrPattern.exec(attrs || '')) !== null) {
+                const [, name, value] = attrMatch;
+                node[`@${name}`] = value;
+            }
+            result[tag] = node;
+            return '';
+        });
+
+        // Handle regular tags
         let match: RegExpExecArray | null;
         while ((match = tagPattern.exec(xml)) !== null) {
             const [, tag, attrs, content] = match;
@@ -107,14 +125,12 @@ export class JsonToXmlAdapter implements ProtocolAdapter<JsonProtocol, XmlProtoc
 
             // Handle content
             if (content.trim()) {
-                node['#text'] = content.trim();
-            }
-
-            // Handle nested tags
-            const nestedTags = content.match(/<[^>]+>[^<]*<\/[^>]+>/g);
-            if (nestedTags) {
-                Object.assign(node, this.xmlToJson(content));
-                delete node['#text'];
+                // Check for nested tags
+                if (/<[^>]+>[^<]*<\/[^>]+>/g.test(content)) {
+                    Object.assign(node, this.xmlToJson(content));
+                } else {
+                    node['#text'] = content.trim();
+                }
             }
 
             result[tag] = node;
