@@ -1,4 +1,5 @@
-import { AdapterRegistry, Protocol, ProtocolAdapter } from '../../core/adapter';
+import { jest } from '@jest/globals';
+import { AdapterRegistry, Protocol } from '../../core/adapter.js';
 
 describe('AdapterRegistry', () => {
     let registry: AdapterRegistry;
@@ -76,7 +77,7 @@ function createMockAdapter(
     sourceName: string,
     targetName: string,
     alwaysCompatible = false
-): ProtocolAdapter<Protocol, Protocol> {
+) {
     return {
         sourceProtocol: {
             name: sourceName,
@@ -92,7 +93,7 @@ function createMockAdapter(
         },
         adapt: jest.fn(),
         reverse: jest.fn(),
-        canHandle: jest.fn().mockImplementation((source, target) => {
+        canHandle: jest.fn().mockImplementation((source: Protocol, target: Protocol) => {
             return alwaysCompatible || (source.name === sourceName && target.name === targetName);
         }),
         getCompatibilityScore: jest.fn().mockReturnValue(1)
