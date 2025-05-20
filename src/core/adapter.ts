@@ -87,6 +87,15 @@ export class AdapterRegistry {
     }
 
     /**
+     * Remove an adapter for the given protocols
+     * @returns true if an adapter was removed
+     */
+    unregister(source: Protocol, target: Protocol): boolean {
+        const key = this.getAdapterKey(source, target);
+        return this.adapters.delete(key);
+    }
+
+    /**
      * Find an adapter that can transform between given protocols
      */
     findAdapter(source: Protocol, target: Protocol): ProtocolAdapter<any, any> | null {
