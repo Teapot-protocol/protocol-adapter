@@ -3,6 +3,7 @@ import { AdapterChainBuilder } from '../../core/adapter-chain.js';
 import { HttpToGrpcAdapter } from '../../implementations/http-grpc.adapter.js';
 import { GrpcToJsonAdapter } from '../../implementations/grpc-json.adapter.js';
 import { JsonToXmlAdapter } from '../../implementations/json-xml.adapter.js';
+import { CsvToJsonAdapter } from '../../implementations/csv-json.adapter.js';
 import { createMockContext } from '../utils/test-helpers.js';
 
 describe('AdapterChainBuilder', () => {
@@ -56,5 +57,23 @@ describe('AdapterChainBuilder', () => {
         expect(chain).toBeTruthy();
         const adapters = chain!.getAdapters();
         expect(adapters.some(a => a instanceof HttpToJsonLowCompat)).toBe(false);
+    });
+
+    it('should build a chain from CSV to XML', async () => {
+        const registry = new AdapterRegistry();
+        registry.register(new CsvToJsonAdapter());
+        registry.register(new JsonToXmlAdapter());
+
+        const builder = new AdapterChainBuilder(registry);
+        const chain = builder.buildChain(
+            { name: 'CSV', version: '1.0', capabilities: [], metadata: {} },
+            { name: 'XML', version: '1.0', capabilities: [], metadata: {} }
+        );
+
+        expect(chain).toBeTruthy();
+
+        const csv = 'name,age\nAlice,30';
+        const xml = await chain!.adapt(csv, createMockContext());
+        expect(xml).toContain('<name>Alice</name>');
     });
 });
