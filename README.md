@@ -32,6 +32,12 @@ const adapter = registry.findAdapter(
 );
 
 const grpcReq = await adapter?.adapt({ method: 'GET', path: '/users', body: {} });
+
+// Unregister adapters when they are no longer needed
+registry.unregister(
+  { name: 'HTTP', version: '1.1', capabilities: [], metadata: {} },
+  { name: 'gRPC', version: '1.0', capabilities: [], metadata: {} }
+);
 ```
 
 See `src/examples/adapter.test.ts` for additional demonstrations.

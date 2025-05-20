@@ -37,6 +37,35 @@ describe('AdapterRegistry', () => {
         });
     });
 
+    describe('unregister', () => {
+        it('should remove an existing adapter', () => {
+            const mockAdapter = createMockAdapter('Protocol1', 'Protocol2');
+            registry.register(mockAdapter);
+
+            const removed = registry.unregister(
+                { name: 'Protocol1', version: '1.0', capabilities: [], metadata: {} },
+                { name: 'Protocol2', version: '1.0', capabilities: [], metadata: {} }
+            );
+
+            expect(removed).toBe(true);
+            const found = registry.findAdapter(
+                { name: 'Protocol1', version: '1.0', capabilities: [], metadata: {} },
+                { name: 'Protocol2', version: '1.0', capabilities: [], metadata: {} }
+            );
+
+            expect(found).toBeNull();
+        });
+
+        it('should return false when no adapter exists', () => {
+            const removed = registry.unregister(
+                { name: 'Nope', version: '1.0', capabilities: [], metadata: {} },
+                { name: 'None', version: '1.0', capabilities: [], metadata: {} }
+            );
+
+            expect(removed).toBe(false);
+        });
+    });
+
     describe('findAdapter', () => {
         it('should find adapter by exact protocol match', () => {
             const mockAdapter = createMockAdapter('Protocol1', 'Protocol2');
