@@ -93,4 +93,29 @@ describe('HttpToGrpcAdapter', () => {
             expect(score).toBeLessThanOrEqual(1);
         });
     });
+
+    describe('status code mapping', () => {
+        it('should map gRPC status codes to HTTP status codes', async () => {
+            const statuses = {
+                0: 200,
+                1: 499,
+                2: 500,
+                3: 400,
+                4: 504,
+                5: 404,
+                6: 409,
+                7: 403
+            } as Record<number, number>;
+
+            for (const [grpcStatus, httpStatus] of Object.entries(statuses)) {
+                const grpcResponse = {
+                    response: new TextEncoder().encode('{}'),
+                    metadata: { status: Number(grpcStatus) }
+                };
+
+                const result = await adapter.reverse(grpcResponse);
+                expect(result.status).toBe(httpStatus);
+            }
+        });
+    });
 });
