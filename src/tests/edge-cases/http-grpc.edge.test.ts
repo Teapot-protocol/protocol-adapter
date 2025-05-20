@@ -57,6 +57,18 @@ describe('HttpToGrpcAdapter Edge Cases', () => {
             expect(result.service).toBe('users');
             expect(result.method).toBe('GETsearch');
         });
+
+        it('should throw an error for invalid path format', async () => {
+            const httpRequest = {
+                method: 'GET',
+                path: '',
+                body: null
+            };
+
+            await expect(adapter.adapt(httpRequest, createMockContext()))
+                .rejects
+                .toThrow('Invalid path format');
+        });
     });
 
     describe('reverse edge cases', () => {
