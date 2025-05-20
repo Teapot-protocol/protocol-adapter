@@ -106,6 +106,13 @@ export class AdapterRegistry {
     }
 
     /**
+     * Get all registered adapters
+     */
+    getAdapters(): ProtocolAdapter<any, any>[] {
+        return Array.from(this.adapters.values());
+    }
+
+    /**
      * Create a unique key for adapter lookup
      */
     private getAdapterKey(source: Protocol, target: Protocol): string {
